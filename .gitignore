@@ -45,3 +45,9 @@ Thumbs.db
 # Benchmark map downloads (user must download separately)
 src/benchmark_maps/*.map
 src/benchmark_maps/*.scen
+
+# sed backup files
+*.bak
+
+# Penang Port intermediate data (regenerable from download_penang_port.py)
+data/penang_port.npz

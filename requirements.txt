@@ -1,2 +1,15 @@
-numpy>=1.21.0
+# Core dependencies for Experiments 1-11
+# NumPy 1.x is recommended for binary compatibility with bundled wheels of the
+# geospatial packages required by Experiment 12.
+numpy<2.0
 matplotlib>=3.5.0
+
+# Experiment 12 only (real port validation from OpenStreetMap).
+# Comment these out if you only need the synthetic experiments.
+osmnx
+geopandas<1.0
+rasterio<1.4
+pyogrio<0.10
+shapely
+pyproj
+scipy
