@@ -1,0 +1,8 @@
+
+A*-family (3000 instances):
+  exact node-count match : 2851/3000 (95.0%)
+  mean |Dnodes|/nodes    : 0.003%   (max 1.07%)
+  cost mismatches        : 0   (must be 0 -- this is the equivalence claim)
+JPS optimality (C++)     : 1000/1000 have cost == A* optimum.
+
+PARITY OK -- C++ and Python return IDENTICAL path cost on every instance (algorithmic equivalence); node-expansion counts agree exactly except for equal-f tie ordering (mean 0.00%). The node-count metric is thus implementation-independent up to tie-breaking, and C++ wall-clock is reported at compiled speed -- retiring the 'Python overhead changes the ranking' caveat.

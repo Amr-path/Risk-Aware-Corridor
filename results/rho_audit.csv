@@ -1,0 +1,13 @@
+risk_type,rho_bar,n,violation_pct,max_excess_pct
+gradient,0.0,50,0.0,0.0
+gradient,0.15,50,100.0,0.383
+gradient,0.3,50,100.0,1.029
+gradient,0.5,50,100.0,2.235
+hotspot,0.0,50,0.0,0.0
+hotspot,0.15,50,100.0,3.086
+hotspot,0.3,50,100.0,6.418
+hotspot,0.5,50,100.0,11.394
+uniform,0.0,50,0.0,0.0
+uniform,0.15,50,0.0,0.0
+uniform,0.3,50,94.0,2.757
+uniform,0.5,50,100.0,3.242

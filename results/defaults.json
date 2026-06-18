@@ -1,0 +1,6 @@
+{
+  "ILS.alpha0_recommended": 0.02,
+  "criterion": "max node reduction with mean cost ratio <= 1.005",
+  "node_reduction_pct": 94.77,
+  "cost_ratio": 1.00289
+}
