@@ -33,6 +33,26 @@ from typing import Optional, Tuple, List, Set
 # ============================================================
 SEED = 42
 np.random.seed(SEED)
+
+# --- Deterministic, collision-free instance seeding ---
+# Python's hash() on a str is randomized per process unless PYTHONHASHSEED is set,
+# so the previous seed = density*1000 + hash(risk_type)%1000 + lam*100 + m was NOT
+# reproducible across runs. Map each risk type to a fixed integer and build a
+# structured seed unique for every (risk_type, density, lam, m); `offset` keeps the
+# per-experiment instance sets disjoint.
+RISK_TYPE_SEED = {'gradient': 0, 'hotspot': 1, 'uniform': 2}
+
+
+def make_instance_seed(risk_type, density, lam, m, offset=0):
+    """Deterministic per-instance seed, distinct for every (risk_type, density, lam, m)
+    as long as m < 1000, round(lam*100) < 1000, and round(density*1000) < 1000."""
+    return int(
+        offset
+        + RISK_TYPE_SEED[risk_type] * 100_000_000
+        + round(density * 1000) * 100_000
+        + round(lam * 100) * 100
+        + m
+    )
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'results')
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
@@ -683,7 +703,7 @@ def run_experiment_1b():
                 success = 0
 
                 for m in range(N_MAPS):
-                    seed = int(density*1000 + hash(risk_type)%1000 + lam*100 + m + 900000)
+                    seed = make_instance_seed(risk_type, density, lam, m, offset=900000)
                     obs = generate_random_grid(SIZE, density, seed=seed)
                     risk = generate_risk_layer(SIZE, risk_type, seed=seed+10000)
                     gm = GridMap(SIZE, SIZE, obs, risk)
@@ -1050,7 +1070,7 @@ def run_experiment_6():
                 success = 0
 
                 for m in range(N_MAPS):
-                    seed = int(density*1000 + hash(risk_type)%1000 + lam*100 + m + 600000)
+                    seed = make_instance_seed(risk_type, density, lam, m, offset=600000)
                     obs = generate_random_grid(SIZE, density, seed=seed)
                     risk = generate_risk_layer(SIZE, risk_type, seed=seed+10000)
                     gm = GridMap(SIZE, SIZE, obs, risk)
@@ -1131,7 +1151,7 @@ def run_experiment_7():
                 astar_costs = []; astar_times = []; astar_nodes_l = []
                 seeds = []
                 for m in range(N_MAPS):
-                    seed = int(density*1000 + hash(risk_type)%1000 + lam*100 + m + 700000)
+                    seed = make_instance_seed(risk_type, density, lam, m, offset=700000)
                     seeds.append(seed)
                     obs = generate_random_grid(SIZE, density, seed=seed)
                     risk = generate_risk_layer(SIZE, risk_type, seed=seed+10000)
@@ -1217,7 +1237,7 @@ def run_experiment_8():
                 success = 0
 
                 for m in range(N_MAPS):
-                    seed = int(density*1000 + hash(risk_type)%1000 + lam*100 + m + 800000)
+                    seed = make_instance_seed(risk_type, density, lam, m, offset=800000)
                     obs = generate_random_grid(SIZE, density, seed=seed)
                     risk = generate_risk_layer(SIZE, risk_type, seed=seed+10000)
                     gm = GridMap(SIZE, SIZE, obs, risk)
@@ -1300,7 +1320,7 @@ def run_experiment_9():
                 success = 0
 
                 for m in range(N_MAPS):
-                    seed = int(density*1000 + hash(risk_type)%1000 + lam*100 + m + 400000)
+                    seed = make_instance_seed(risk_type, density, lam, m, offset=400000)
                     obs = generate_random_grid(SIZE, density, seed=seed)
                     risk = generate_risk_layer(SIZE, risk_type, seed=seed+10000)
                     gm = GridMap(SIZE, SIZE, obs, risk)

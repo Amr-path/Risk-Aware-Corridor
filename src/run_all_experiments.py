@@ -32,6 +32,64 @@ from scipy import stats
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, List, Dict, Set
 
+# --- Correct significance protocol (Wilcoxon signed-rank + rank-biserial effect size
+#     + valid percentile bootstrap CI; Holm family-wise correction applied per experiment).
+#     This replaces the earlier paired t-test / Cohen's d, which is invalid on the
+#     near-deterministic node-count differences these experiments produce. ---
+try:
+    from stats_v2 import paired_report, holm
+except ImportError:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from stats_v2 import paired_report, holm
+
+
+# --- Deterministic, collision-free instance seeding ---
+# Python's hash() on a str is randomized per process unless PYTHONHASHSEED is set,
+# so the previous seed = density*1000 + hash(risk_type)%1000 + lam*100 + m was NOT
+# reproducible across runs (and could collide). Map each risk type to a fixed integer
+# and build a structured seed that is unique for every (risk_type, density, lam, m).
+RISK_TYPE_SEED = {'gradient': 0, 'hotspot': 1, 'uniform': 2}
+
+
+def make_instance_seed(risk_type, density, lam, m, offset=0):
+    """Deterministic per-instance seed, distinct for every (risk_type, density, lam, m)
+    as long as m < 1000, round(lam*100) < 1000, and round(density*1000) < 1000."""
+    return int(
+        offset
+        + RISK_TYPE_SEED[risk_type] * 100_000_000
+        + round(density * 1000) * 100_000
+        + round(lam * 100) * 100
+        + m
+    )
+
+
+def _paired_stats(baseline, contender, prefix=""):
+    """Per-cell Wilcoxon p, rank-biserial, Cohen's dz, and bootstrap CI of the
+    per-instance node-reduction. Holm correction is added afterwards across the family."""
+    b = np.asarray(baseline, float)
+    c = np.asarray(contender, float)
+    if len(b) > 1:
+        r = paired_report(b, c, lower_is_better=True)
+    else:
+        r = dict(wilcoxon_p=1.0, rank_biserial=0.0, cohens_dz=0.0,
+                 ci_lo=float('nan'), ci_hi=float('nan'))
+    return {prefix + 'wilcoxon_p': float(r['wilcoxon_p']),
+            prefix + 'rank_biserial': float(r['rank_biserial']),
+            prefix + 'cohens_dz': float(r['cohens_dz']),
+            prefix + 'node_red_ci_lo': float(r['ci_lo']),
+            prefix + 'node_red_ci_hi': float(r['ci_hi'])}
+
+
+def _add_holm(results, pkey='wilcoxon_p', holm_key='holm_p', sig_key='significant'):
+    """Holm-Bonferroni across all configuration cells of one experiment (family-wise)."""
+    if not results:
+        return results
+    adj = holm([r[pkey] for r in results])
+    for r, a in zip(results, adj):
+        r[holm_key] = float(a)
+        r[sig_key] = bool(a < 0.05)
+    return results
+
 # ============================================================
 # UTILITY: Ensure reproducibility
 # ============================================================
@@ -683,7 +741,7 @@ def run_experiment_1():
                 success_count = 0
 
                 for m in range(N_MAPS):
-                    seed = int(density * 1000 + hash(risk_type) % 1000 + lam * 100 + m)
+                    seed = make_instance_seed(risk_type, density, lam, m)
                     obs = generate_random_grid(SIZE, density, seed=seed)
                     risk = generate_risk_layer(SIZE, risk_type, seed=seed + 10000)
                     gm = GridMap(SIZE, SIZE, obs, risk)
@@ -728,12 +786,9 @@ def run_experiment_1():
                 mean_exp = np.mean(exposure_ratios)
                 mean_expansions = np.mean(ils_expansions_list)
 
-                # Statistical test
-                if len(at) > 1:
-                    t_stat, p_val = stats.ttest_rel(an, iin)
-                    d_val = np.mean(an - iin) / np.std(an - iin) if np.std(an - iin) > 0 else 0
-                else:
-                    t_stat, p_val, d_val = 0, 1, 0
+                # Statistical test: Wilcoxon signed-rank + rank-biserial + bootstrap CI
+                # (Holm family-wise correction applied across all configs after the loop)
+                stat_cell = _paired_stats(an, iin)
 
                 results.append({
                     'density': density,
@@ -749,14 +804,15 @@ def run_experiment_1():
                     'path_opt_ratio': mean_opt,
                     'exposure_ratio': mean_exp,
                     'mean_expansions': mean_expansions,
-                    't_statistic': t_stat,
-                    'p_value': p_val,
-                    'cohens_d': d_val
+                    **stat_cell
                 })
 
                 print(f"    N={success_count}, Speedup={speedup:.2f}x, "
                       f"NodeRed={node_red:.1f}%, OptRatio={mean_opt:.4f}, "
                       f"ExpRatio={mean_exp:.4f}")
+
+    # Holm-Bonferroni family-wise correction across all configurations of this experiment
+    results = _add_holm(results)
 
     # Save results
     outfile = os.path.join(RESULTS_DIR, 'exp1_risk_annotated.csv')
@@ -958,12 +1014,10 @@ def run_experiment_3():
         iin = np.array(ils_nodes_list)
         jn = np.array(jps_nodes_list)
 
-        # Statistical tests
-        t_ils, p_ils = stats.ttest_rel(an, iin) if len(an) > 1 else (0, 1)
-        t_jps, p_jps = stats.ttest_rel(an, jn) if len(an) > 1 else (0, 1)
-
-        d_ils = np.mean(an - iin) / np.std(an - iin) if np.std(an - iin) > 0 else 0
-        d_jps = np.mean(an - jn) / np.std(an - jn) if np.std(an - jn) > 0 else 0
+        # Statistical tests: Wilcoxon + rank-biserial + bootstrap CI for each contender
+        # (Holm applied per family -- ILS-vs-A* and JPS-vs-A* -- after the loop)
+        st_ils = _paired_stats(an, iin, prefix='ils_')
+        st_jps = _paired_stats(an, jn, prefix='jps_')
 
         results.append({
             'density': density,
@@ -977,18 +1031,18 @@ def run_experiment_3():
             'ils_node_red_pct': (1 - np.mean(iin)/np.mean(an)) * 100,
             'jps_node_red_pct': (1 - np.mean(jn)/np.mean(an)) * 100,
             'ils_opt_ratio': np.mean(ils_opt_list),
-            't_ils': t_ils,
-            'p_ils': p_ils,
-            'd_ils': d_ils,
-            't_jps': t_jps,
-            'p_jps': p_jps,
-            'd_jps': d_jps,
+            **st_ils,
+            **st_jps,
         })
 
         print(f"    N={success_count}")
         print(f"    A*:  {np.mean(at):.2f}ms, {np.mean(an):.0f} nodes")
         print(f"    ILS: {np.mean(it):.2f}ms, {np.mean(iin):.0f} nodes ({results[-1]['ils_node_red_pct']:.1f}% red)")
         print(f"    JPS: {np.mean(jt):.2f}ms, {np.mean(jn):.0f} nodes ({results[-1]['jps_node_red_pct']:.1f}% red)")
+
+    # Holm-Bonferroni per family (ILS vs A*, JPS vs A*) across the density cells
+    _add_holm(results, pkey='ils_wilcoxon_p', holm_key='ils_holm_p', sig_key='ils_significant')
+    _add_holm(results, pkey='jps_wilcoxon_p', holm_key='jps_holm_p', sig_key='jps_significant')
 
     outfile = os.path.join(RESULTS_DIR, 'exp3_jps_comparison.csv')
     with open(outfile, 'w', newline='') as f:
@@ -1091,8 +1145,8 @@ def run_experiment_4():
         an = np.array(astar_replan_nodes)
         ain = np.array(ails_replan_nodes)
 
-        t_stat, p_val = stats.ttest_rel(an, ain) if len(an) > 1 else (0, 1)
-        d_val = np.mean(an - ain) / np.std(an - ain) if np.std(an - ain) > 0 else 0
+        # Wilcoxon + rank-biserial + bootstrap CI (Holm across densities after the loop)
+        stat_cell = _paired_stats(an, ain)
 
         results.append({
             'density': density,
@@ -1103,9 +1157,7 @@ def run_experiment_4():
             'ails_replan_nodes': np.mean(ain),
             'node_reduction_pct': (1 - np.mean(ain)/np.mean(an)) * 100,
             'speedup': np.mean(at) / np.mean(ait) if np.mean(ait) > 0 else 0,
-            't_statistic': t_stat,
-            'p_value': p_val,
-            'cohens_d': d_val,
+            **stat_cell,
         })
 
         print(f"    N={success_count}")
@@ -1113,6 +1165,7 @@ def run_experiment_4():
         print(f"    AILS:      {np.mean(ait):.2f}ms, {np.mean(ain):.0f} nodes "
               f"({results[-1]['node_reduction_pct']:.1f}% red)")
 
+    _add_holm(results)
     outfile = os.path.join(RESULTS_DIR, 'exp4_replanning.csv')
     with open(outfile, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())
@@ -1252,8 +1305,8 @@ def run_experiment_5():
         at = np.array(astar_total_time_list)
         it = np.array(ils_total_time_list)
 
-        t_stat, p_val = stats.ttest_rel(an, iin) if len(an) > 1 else (0, 1)
-        d_val = np.mean(an - iin) / np.std(an - iin) if np.std(an - iin) > 0 else 0
+        # Wilcoxon + rank-biserial + bootstrap CI (Holm across densities after the loop)
+        stat_cell = _paired_stats(an, iin)
 
         results.append({
             'density': density,
@@ -1270,9 +1323,7 @@ def run_experiment_5():
             'time_ratio': np.mean(it) / np.mean(at) if np.mean(at) > 0 else 0,
             'mean_path_ratio': np.mean(path_ratio_list) if path_ratio_list else 0,
             'max_path_ratio': np.max(path_ratio_list) if path_ratio_list else 0,
-            't_statistic': t_stat,
-            'p_value': p_val,
-            'cohens_d': d_val,
+            **stat_cell,
         })
 
         print(f"    A* success: {astar_success}/{N_MISSIONS} ({astar_success/N_MISSIONS:.1%})")
@@ -1283,6 +1334,7 @@ def run_experiment_5():
         if path_ratio_list:
             print(f"    Path ratio: mean={np.mean(path_ratio_list):.4f}, max={np.max(path_ratio_list):.4f}")
 
+    _add_holm(results)
     outfile = os.path.join(RESULTS_DIR, 'exp5_progressive.csv')
     with open(outfile, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=results[0].keys())

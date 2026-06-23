@@ -1,0 +1,296 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{etoolbox}
+\AtBeginEnvironment{tabular}{\footnotesize}
+\renewcommand{\arraystretch}{0.92}
+\setlength{\tabcolsep}{4.5pt}
+\usepackage{natbib}
+\usepackage{xr}
+\externaldocument{main}
+\usepackage{hyperref}
+\title{Supplementary Material\\ \large Risk-Aware Corridor-Constrained Pathfinding for UAV Navigation in Biosecurity-Sensitive Environments}
+\author{}\date{}
+\begin{document}\maketitle
+\noindent This document contains (i)~secondary baseline, benchmark, and feasibility experiments and (ii)~full proofs of the formal results stated in the main paper. Cross-references such as ``Proposition~1'', ``Eq.~(3)'', ``Table~2'', and ``Section~6'' refer to the main paper.
+
+\section{Secondary Experiments}
+\subsection*{Experimental setup}
+
+\subsection{Experiment 6: Weighted A* Comparison}
+
+\paragraph{Setup.}
+We evaluated Weighted A* (wA*, $w \in \{1.5,\, 2.0,\, 3.0\}$) against A*, ILS, and AILS on $200 \times 200$ risk-annotated grids, using the Experiment~1 density--risk--$\lambda$ configurations with 50 maps each and random start--goal pairs (minimum Manhattan distance 100 cells).
+
+\subsection{Experiment 10: Moving AI Lab Benchmark Evaluation}
+
+\paragraph{Setup.}
+For external validity and comparison with published results, we evaluated A*, ILS, and AILS on Moving AI Lab maps~\citep{Sturtevant2012} in three categories: \emph{game maps} from Dragon Age: Origins (lak303d, den501d, brc202d, ost003d); \emph{mazes} (maze512-$k$-0, $k \in \{1, 2, 4, 8\}$, progressively wider corridors); and \emph{random maps} (random512-$d$-0, $d \in \{10, 20, 30, 40\}$\% density) matching the procedural grids of Experiments~1--9. All maps are $512 \times 512$ or smaller; up to 100 scenarios per map were drawn from the official files, preferring longer paths. No risk ($\lambda = 0$): this tests the corridor mechanism on diverse topologies. ILS used $\alpha = 0.05$; AILS used $r_{\min} = 0.02 \cdot \text{diag}$, $r_{\max} = 0.10 \cdot \text{diag}$.
+
+\subsection{Experiment 10b: Risk-Annotated Benchmark Evaluation}
+
+\paragraph{Setup.}
+To extend benchmarks beyond $\lambda = 0$, we overlaid synthetic risk (gradient, hotspot) on Moving AI Lab random maps and evaluated ILS, AILS, and RILS at $\lambda \in \{0.5, 1.0\}$, testing two maps (random512-20-0, random512-30-0) with 10 longer-path scenarios per configuration.
+
+\subsection{Experiment 10c: Maze Benchmark Evaluation}
+
+\paragraph{Setup.}
+To stress-test corridor methods on adversarial topologies, we evaluated ILS and AILS on procedural $256 \times 256$ maze maps at four corridor widths ($k \in \{1, 2, 4, 8\}$; densities 51\%, 34\%, 21\%, 14\%), 20 scenarios per configuration, no risk ($\lambda = 0$). Mazes were generated via randomised DFS (perfect, fully reachable). Official Moving AI Lab maze maps were unavailable due to persistent HTTP 500 download errors across multiple dates.
+
+\subsection{Experiment 11: Multi-Heuristic Comparison}
+
+\paragraph{Setup.}
+To assess robustness to heuristic choice, we compared four heuristics within ILS at $\lambda = 1.0$: octile, Euclidean, Manhattan, and risk-adjusted octile ($h_\lambda = h \cdot (1 + \lambda \cdot 0.3)$), each with A* and ILS ($\alpha = 0.05$) on $200 \times 200$ risk-annotated grids at three densities and three risk distributions (20 maps per configuration).
+
+\subsection{Experiment 13: Autopilot Waypoint-Mission Feasibility}\label{subsec:exp13_setup}
+
+\paragraph{Setup.}
+To test whether corridor-restricted paths convert into a deployable autopilot mission, we implemented an ArduPilot-compatible pipeline: grid paths become GPS waypoints (1\,m per cell), compressed by collinear-waypoint removal, and assembled into a mission with a 2\,m proximity threshold and return-to-launch terminator. We evaluate it in a deterministic mission simulator reproducing the waypoint-following geometry; we do \emph{not} claim closed-loop flight in the ArduCopter SITL simulator, the immediate next step (Section~\ref{subsec:practical}). A representative mission used a $50 \times 50$ grid at $20\%$ density.
+
+\paragraph{Parameter sweep.}
+We then ran a feasibility sweep (100 maps per configuration) over grid size ($30$--$100$ cells), density ($10\%$--$30\%$), and initial corridor width ($3\%$--$15\%$). Metrics: planning time, node reduction, path optimality ratio, post-compression waypoint count, and mean heading change between consecutive waypoints (smoothness). This covers the small-grid flight-envelope regime, below the AILS wall-clock crossover (${\sim}300 \times 300$) of Experiment~9.
+
+
+\subsection*{Results}
+
+\subsection{Experiment 6: Weighted A* Comparison}
+
+Table~\ref{tab:exp6_wa} compares Weighted A* (wA*) against ILS across risk distributions at $\lambda = 1.0$, averaged over three densities with 50 random start--goal pairs per configuration.
+
+\begin{table}[!htbp]
+\centering
+\caption{Weighted A* vs.\ ILS at $\lambda = 1.0$ (mean across three densities, 50 maps each, random start--goal pairs). Speedup relative to A*; Opt = mean path cost ratio $\pm$ 95\% CI.}
+\label{tab:exp6_wa}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Risk}} & \multicolumn{2}{c}{\textbf{wA* ($w\!=\!1.5$)}} & \multicolumn{2}{c}{\textbf{wA* ($w\!=\!2.0$)}} & \multicolumn{2}{c}{\textbf{wA* ($w\!=\!3.0$)}} & \multicolumn{2}{c}{\textbf{ILS}} \\
+& Speed & Opt & Speed & Opt & Speed & Opt & Speed & Opt \\
+\midrule
+Gradient & $7.2\times$ & $1.008 \pm .001$ & $95.2\times$ & $1.022 \pm .002$ & $90.9\times$ & $1.028 \pm .003$ & $6.6\times$ & $1.000 \pm .000$ \\
+Hotspot  & $18.2\times$ & $1.039 \pm .006$ & $22.6\times$ & $1.045 \pm .007$ & $22.0\times$ & $1.051 \pm .007$ & $1.9\times$ & $1.009 \pm .003$ \\
+Uniform  & $40.8\times$ & $1.016 \pm .002$ & $48.8\times$ & $1.021 \pm .003$ & $48.6\times$ & $1.026 \pm .003$ & $3.3\times$ & $1.000 \pm .000$ \\
+\midrule
+Mean     & $22.1\times$ & 1.021 & $55.5\times$ & 1.029 & $53.9\times$ & 1.035 & $3.9\times$ & 1.003 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+wA* and ILS occupy different tradeoff axes. wA* reached far higher speedups ($22$--$56\times$ vs.\ ILS's $3.9\times$, up to $95\times$ for gradient risk at $w = 2.0$) via heuristic inflation that expanded $92$--$98\%$ fewer nodes, but at $2.0$--$4.6\%$ mean suboptimality (worst on hotspot risk, $3.5$--$4.6\%$). ILS stayed within $0.3\%$ of optimal everywhere, with gradient and uniform risk near-perfect ($\leq 0.01\%$).
+
+For biosecurity, where path quality affects risk exposure, ILS's $6.6\times$ at $0.01\%$ suboptimality on gradient risk is preferable to wA*'s $95.6\times$ at $2.0\%$; for time-critical scenarios tolerating bounded suboptimality, wA* with $w = 1.5$ is an effective compromise ($7.5$--$43\times$, $\leq 3.5\%$ suboptimal).
+
+\subsection{Experiment 10: Moving AI Lab Benchmark Evaluation}
+
+\begin{table}[!htbp]
+\centering
+\caption{ILS and AILS performance on Moving AI Lab benchmark maps ($\lambda = 0$, up to 100 scenarios per map). Speed = speedup vs.\ A*; Red = node reduction \%; Opt = path cost ratio vs.\ A*; Slv = solve rate.}
+\label{tab:exp10_benchmark}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llcccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Cat.}} & \multirow{2}{*}{\textbf{Map}} & \multicolumn{4}{c}{\textbf{ILS}} & \multicolumn{4}{c}{\textbf{AILS}} \\
+& & Speed & Red.\% & Opt & Slv\% & Speed & Red.\% & Opt & Slv\% \\
+\midrule
+Game & lak303d & $0.29\times$ & $-231$ & 1.000 & 58 & $0.35\times$ & $-168$ & 1.001 & 88 \\
+Game & den501d & $0.30\times$ & $-234$ & 1.001 & 94 & $0.37\times$ & $-163$ & 1.001 & 94 \\
+Game & brc202d & $0.37\times$ & $-170$ & 1.000 & 49 & $0.47\times$ & $-106$ & 1.000 & 50 \\
+Game & ost003d & $0.28\times$ & $-232$ & 1.000 & 50 & $0.32\times$ & $-197$ & 1.001 & 50 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Game mean}} & $0.31\times$ & $-216$ & 1.000 & 63 & $0.38\times$ & $-159$ & 1.001 & 70 \\
+\midrule
+Random & 10\% & $0.94\times$ & $0.1$ & 1.000 & 100 & $0.89\times$ & $4.2$ & 1.000 & 100 \\
+Random & 20\% & $0.93\times$ & $0.1$ & 1.000 & 100 & $0.89\times$ & $1.1$ & 1.000 & 100 \\
+Random & 30\% & $0.95\times$ & $1.3$ & 1.000 & 100 & $0.93\times$ & $1.6$ & 1.000 & 100 \\
+Random & 40\% & $1.10\times$ & $12.5$ & 1.000 & 100 & $0.94\times$ & $5.4$ & 1.000 & 100 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Random mean}} & $0.98\times$ & $3.5$ & 1.000 & 100 & $0.91\times$ & $3.1$ & 1.000 & 100 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:exp10_benchmark} shows corridor methods give no speedup on standard benchmarks at $\lambda = 0$ (no risk layer), and are substantially slower on game maps.
+
+\paragraph{Game maps (Dragon Age: Origins).}
+On game maps (60--83\% obstacle density), ILS was $2.7$ to $3.6$ times slower than A* ($0.28\times$--$0.37\times$) with strongly negative node reduction ($-170\%$ to $-234\%$); AILS was slightly better ($0.32\times$--$0.47\times$) but still slower. Game maps are rooms joined by narrow doorways, so the Bresenham line crosses many walls and each failed corridor attempt accumulates wasted search beyond A*'s single pass. Solve rates were lower (49 to 94\%) where scenarios require paths far from the Bresenham line.
+
+\paragraph{Random maps (10--40\% density).}
+On random maps at $\lambda = 0$, ILS was near-neutral ($0.93$--$1.10\times$), with positive node reduction only at 40\% density ($12.5\%$), consistent with Experiment~1's $0.90$--$1.37\times$: on uniform-cost grids the optimal path lies near the geometric shortest path, leaving little for the corridor to prune. All scenarios solved optimally (cost ratio $\leq 1.0001$).
+
+\paragraph{Implications.}
+This is the cleanest evidence for a claim that runs through the paper: the corridor earns its keep from the risk-weighted cost landscape, not the mechanism alone. On uniform-cost benchmarks it adds overhead without proportional benefit; the $3\times$ to $8\times$ speedups of Experiments 1 and 6 to 8 arise because the risk-weighted cost ($\lambda > 0$) makes a spatial corridor prune the nodes A* explores to evaluate risk-avoiding detours. Corridor methods are thus a targeted accelerator for risk-weighted pathfinding, not a general-purpose speedup.
+
+\paragraph{Full-corpus extension and a topological boundary.}
+To test this at scale we evaluated the \emph{entire} Dragon Age: Origins corpus --- all $156$ maps, $7{,}800$ scenarios (longest paths per map), suboptimality scored against the published \texttt{.scen} optima under the no-corner-cutting convention. At $\lambda = 0$ the corridor methods are slower than A* as expected. Adding a gradient risk layer ($\lambda = 1.0$) raises their solve rate (ILS $56.0\%$, AILS $50.4\%$) and keeps path quality near-optimal (mean suboptimality $0.09\%$ for ILS, $0.16\%$ for AILS), but the mean node-expansion reduction \emph{remains negative} (ILS $-39.7\%$, AILS $-11.9\%$). This refines the activation claim of Experiment~10b: risk weighting activates the corridor advantage on \emph{open/random} topologies (where the optimal path tracks the start--goal line), but \emph{not} on the room-and-corridor topology of DAO, where the optimal path deviates far from the Bresenham line. The containment analysis of Section~\ref{subsec:containment} explains why: DAO instances have a large minimal deviation $\zeta^\star$, so the corridor has to widen a long way (or give up) before it contains an optimal path, and weighting the cost by risk does nothing to shrink that geometric deviation. The corridor advantage thus has \emph{two} preconditions, not one: a risk-weighted cost function \emph{and} a topology in which the optimal path stays near the reference line.
+
+\subsection{Experiment 10b: Risk-Annotated Benchmark Results}
+
+\begin{table}[!htbp]
+\centering
+\caption{ILS, AILS, and RILS on Moving AI Lab random maps with synthetic risk layers. Speed = speedup vs.\ A*; Red = node reduction \%; Opt = path cost ratio.}
+\label{tab:exp10b_risk_bench}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Map}} & \multirow{2}{*}{$\boldsymbol{\lambda}$} & \multicolumn{3}{c}{\textbf{ILS}} & \multicolumn{3}{c}{\textbf{AILS}} & \multicolumn{3}{c}{\textbf{RILS}} \\
+& & Speed & Red.\% & Opt & Speed & Red.\% & Opt & Speed & Red.\% & Opt \\
+\midrule
+\multicolumn{11}{l}{\textit{Gradient risk}} \\
+20\% & 0.5 & $1.71\times$ & 41.2 & 1.000 & $2.18\times$ & 51.9 & 1.000 & $1.11\times$ & 11.7 & 1.000 \\
+20\% & 1.0 & $2.57\times$ & 56.7 & 1.000 & $3.02\times$ & 65.0 & 1.000 & $1.39\times$ & 26.5 & 1.000 \\
+30\% & 0.5 & $1.96\times$ & 46.2 & 1.000 & $1.92\times$ & 46.8 & 1.000 & $1.07\times$ & 11.6 & 1.000 \\
+30\% & 1.0 & $2.68\times$ & 59.6 & 1.000 & $2.62\times$ & 60.0 & 1.000 & $1.41\times$ & 29.2 & 1.000 \\
+\midrule
+\multicolumn{11}{l}{\textit{Hotspot risk}} \\
+20\% & 0.5 & $1.42\times$ & 27.0 & 1.000 & $1.75\times$ & 39.6 & 1.000 & $1.19\times$ & 17.5 & 1.000 \\
+20\% & 1.0 & $2.01\times$ & 49.4 & 1.000 & $2.49\times$ & 59.1 & 1.001 & $1.56\times$ & 34.2 & 1.000 \\
+30\% & 0.5 & $1.28\times$ & 25.4 & 1.000 & $1.36\times$ & 26.8 & 1.000 & $1.11\times$ & 11.8 & 1.000 \\
+30\% & 1.0 & $1.83\times$ & 41.1 & 1.000 & $1.86\times$ & 42.5 & 1.000 & $1.29\times$ & 19.3 & 1.000 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Table~\ref{tab:exp10b_risk_bench} shows the same Moving AI Lab maps that gave no benefit at $\lambda = 0$ yield substantial speedups once risk layers are added. At $\lambda = 1.0$ on gradient risk, ILS reached $2.57\times$ to $2.68\times$ ($57\%$ to $60\%$ node reduction) and AILS $2.62\times$ to $3.02\times$; on hotspot risk, $1.83\times$ to $2.01\times$ (ILS) and $1.86\times$ to $2.49\times$ (AILS). Path quality stays near-optimal (cost ratio $\leq 1.001$), and RILS holds perfect optimality at lower speedup ($1.07\times$ to $1.56\times$). Results are reproducible: node reduction had zero variance across the $n = 10$ scenarios per configuration, and paired mean speedups across the two maps are close. This isolates the risk-weighted cost landscape as the trigger for corridor acceleration, independent of map topology.
+
+\subsection{Experiment 10c: Maze Benchmark Results}
+
+\begin{table}[!htbp]
+\centering
+\caption{ILS and AILS performance on procedurally generated maze maps ($256 \times 256$, $\lambda = 0$). Solve rate denotes the fraction of scenarios where the corridor method found a path.}
+\label{tab:exp10c_maze}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccccc}
+\toprule
+\multirow{2}{*}{\textbf{Maze}} & \multirow{2}{*}{\textbf{Width}} & \multirow{2}{*}{\textbf{Dens.}} & \multicolumn{4}{c}{\textbf{ILS}} & \multicolumn{4}{c}{\textbf{AILS}} \\
+& & & Speed & Red.\% & Opt & Slv\% & Speed & Red.\% & Opt & Slv\% \\
+\midrule
+maze-1 & 1 & 51\% & $0.47\times$ & $-105$ & 1.000 & 45 & $0.43\times$ & $-123$ & 1.000 & 50 \\
+maze-2 & 2 & 34\% & $0.65\times$ & $-50$ & 1.000 & 45 & $0.63\times$ & $-54$ & 1.000 & 45 \\
+maze-4 & 4 & 21\% & $0.53\times$ & $-74$ & 1.000 & 40 & $0.54\times$ & $-64$ & 1.000 & 35 \\
+maze-8 & 8 & 14\% & $0.43\times$ & $-134$ & 1.000 & 65 & $0.46\times$ & $-111$ & 1.000 & 55 \\
+\midrule
+\multicolumn{3}{l}{\textbf{Mean}} & $0.52\times$ & $-91$ & 1.000 & 49 & $0.51\times$ & $-88$ & 1.000 & 46 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Mazes (Table~\ref{tab:exp10c_maze}) are a worst case: both ILS and AILS were slower than A* ($0.43$--$0.67\times$) with massively negative node reduction ($-50\%$ to $-134\%$), since maze paths wind through narrow passages far from the Bresenham line and each failed corridor attempt wastes search before expanding to contain the tortuous optimum. Solve rates were low ($35$--$65\%$), as many paths cannot be found within the maximum 10 corridor expansions. Path quality nonetheless stayed perfect ($1.000$) for every solved scenario. This sharpens the boundary: corridor methods work where the Bresenham line is a reasonable reference for the optimal path, and fail on topologies like mazes where the optimum bears no geometric relation to the start--goal line.
+
+\subsection{Experiment 11: Multi-Heuristic Results}
+
+\begin{table}[!htbp]
+\centering
+\caption{ILS speedup with different heuristics at $\lambda = 1.0$ on $200 \times 200$ risk-annotated grids (mean across three densities).}
+\label{tab:exp11_heuristic}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{\textbf{Heuristic}} & \multicolumn{3}{c}{\textbf{ILS Speedup ($\times$)}} & \multicolumn{3}{c}{\textbf{ILS Node Red.\ (\%)}} \\
+& Grad. & Hot. & Unif. & Grad. & Hot. & Unif. \\
+\midrule
+Octile         & $1.91$ & $1.60$ & $1.57$ & $48.9$ & $36.4$ & $36.3$ \\
+Euclidean      & $2.11$ & $1.64$ & $1.66$ & $52.2$ & $39.4$ & $41.2$ \\
+Manhattan      & $1.63$ & $1.35$ & $1.28$ & $35.0$ & $29.8$ & $25.2$ \\
+Risk-adj.      & $1.23$ & $1.15$ & $1.02$ & $24.8$ & $15.0$ & $6.8$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:exp11_heuristic} shows corridor speedups are robust across heuristics. All four gave positive ILS speedups on gradient and hotspot risk; Euclidean was highest ($2.11\times$ gradient, $1.66\times$ uniform) and Manhattan moderate ($1.28$--$1.63\times$), its coarser guidance exploring more nodes and leaving less to prune. The risk-adjusted heuristic ($h_\lambda = h \cdot (1 + \lambda \cdot 0.3)$) gave the lowest speedups despite guiding A* more efficiently: a tighter heuristic already prunes well, leaving less for the corridor to eliminate, so the advantage is largest when the baseline search is expensive. On uniform risk it reached only $1.02\times$, A* expanding just $312$--$843$ nodes so corridor overhead nearly cancels the benefit. The corridor thus interacts multiplicatively with heuristic quality, giving consistent relative improvement across all heuristics; the default octile heuristic is a practical middle ground.
+
+\subsection{Experiment 13: Autopilot Waypoint-Mission Feasibility Results}\label{subsec:exp13_results}
+
+The $50 \times 50$ ILS path converted cleanly into a deployable mission: a compact GPS waypoint sequence with a 2\,m proximity threshold and return-to-launch terminator, with smooth heading transitions and no post-processing beyond collinear-waypoint compression. A 100-map sweep over grid size ($30$--$100$), density ($10$--$30\%$) and corridor width ($3$--$15\%$) confirmed the missions stay geometrically clean: optimality within $0.2\%$ of A* up to $25\%$ density (cost ratio $1.0001$ at $10\%$ to $1.0019$ at $25\%$), degrading mildly to $1.0035$ at $30\%$; collinear compression removed $\approx 69\%$ of waypoints, with mean heading change $\approx 13^\circ$. Compression and smoothness were independent of corridor width, while optimality improved monotonically with it ($1.0035$ at a $3\%$ band to $1.0000$ at $15\%$). On these sub-$100 \times 100$ grids planning time was only modestly below A* (mean $1.15\times$, range $0.88\times$--$2.19\times$); the substantial gains of Experiments~1, 9 and~14 emerge above the $\sim 300 \times 300$ crossover. Closed-loop SITL flight is the next step (Section~\ref{subsec:practical}).
+
+
+\section{Proofs}\label{app:proofs-supp}
+Proofs are given in the order the results are stated in the main paper.
+
+
+\paragraph{Proposition~\ref{prop:admissible}.}
+\noindent\textit{Proof.}
+For any path $\pi = (n, v_1, \ldots, g)$ with $k$ edges, the true cost decomposes as
+\[
+C(\pi) = \sum_{i=0}^{k-1} \bigl[d(v_i, v_{i+1}) + \lambda \cdot \rho(v_{i+1})\bigr] = D(\pi) + \lambda \cdot R(\pi),
+\]
+where $D(\pi) \geq h(n,g)$ because the octile distance is the minimum-cost path on the unblocked 8-connected grid, and $R(\pi) = \sum_{i=1}^{k} \rho(v_i) = k \cdot \bar{\rho}_\pi$ by definition of the mean risk.
+Under condition~(\ref{eq:adm_condition}), $\lambda \cdot R(\pi) \geq \lambda \cdot h(n,g) \cdot \bar{\rho}_0$, so
+\[
+C(\pi) \;=\; D(\pi) + \lambda \cdot R(\pi) \;\geq\; h(n,g) + \lambda \cdot h(n,g) \cdot \bar{\rho}_0 \;=\; h_\lambda(n,g).
+\]
+Therefore $h_\lambda$ is admissible at $n$. $\square$
+
+\paragraph{Proposition~\ref{prop:complete}.}
+\noindent\textit{Proof.}
+When $\pi^* \subseteq \mathcal{C}(r)$, the corridor restriction removes only nodes not on $\pi^*$, and A* with an admissible heuristic on the restricted graph $G|_{\mathcal{C}(r)}$ finds $\pi^*$ because all nodes on $\pi^*$ remain in the search space.
+For completeness, each failed attempt increases corridor width by $\Delta r$, so after $K_{\max}$ attempts the corridor covers all cells within $d_\infty$-distance $r_0 + (K_{\max}-1) \cdot \Delta r$ of the reference line.
+$\square$
+
+\paragraph{Proposition~\ref{prop:termination}.}
+\noindent\textit{Proof.}
+The half-width updates monotonically as $r \leftarrow r + \Delta r$ on each failed attempt, so at attempt $k$ the corridor is $\mathcal{C}(r_0 + (k-1)\Delta r)$; the loop therefore stops after at most $\min\!\big(K_{\max},\, \lceil (r_{\mathrm{cover}} - r_0)/\Delta r \rceil + 1\big)$ iterations, the second term being the number of widenings needed to reach $r_{\mathrm{cover}}$. Each restricted search terminates because the base algorithm is complete on the finite subgraph $G|_{\mathcal{C}(r)}$ and returns its in-corridor optimum or reports infeasibility, so on exhaustion the procedure returns the optimum of the terminal corridor $\mathcal{C}(r_0+(K_{\max}-1)\Delta r)$ or FAILURE. For the completeness claim, every cell of an $H \times W$ grid lies within $d_\infty$-distance $\max(H,W) - 1$ of either endpoint of the reference line $\ell(s,g)$, hence within that distance of $\ell(s,g)$; so when the cap permits $r$ to reach $r_{\mathrm{cover}} = \max(H,W) - 1$ the corridor covers $V$ (the choice $\min(H,W)$ is insufficient on non-square grids whose reference line is short and corner-localised), and that final attempt runs the base algorithm on the unrestricted graph $G$, returning a path iff one exists. If the cap halts the loop before $r_{\mathrm{cover}}$, the same per-attempt argument yields the terminal-corridor optimum, or FAILURE if it contains no $s$-to-$g$ path. The pathological case $\Delta r = 0$ (a corridor that never widens) is excluded by the hypothesis $\Delta r \geq 1$, which is the natural integer increment on an 8-connected grid with unit spacing. $\square$
+
+\paragraph{Proposition~\ref{prop:certificate}.}
+\noindent\textit{Proof.}
+Optimality of $\pi_{\mathrm{ILS}}$ on $G|_{\mathcal{C}^{\dagger}}$ is inherited from the base algorithm's optimality on any finite weighted graph. Its cost therefore equals the minimum in-corridor cost, which exceeds the global optimum $C(\pi^*)$ by exactly $\Delta_{\mathcal{C}^{\dagger}}$; this difference is zero precisely when a globally optimal path lies inside $\mathcal{C}^{\dagger}$, and trivially when $r^{\dagger} = r_{\mathrm{cover}}$. Inequality~\eqref{eq:cert_loose} follows from $C(\pi^*) \geq \underline{C}(s,g)$; equality~\eqref{eq:cert_exact} follows by computing $C(\pi^*)$ exactly with one unrestricted search. $\square$
+
+\paragraph{Corollary~\ref{cor:bound}.}
+\noindent\textit{Proof.}
+The base algorithm's optimality on $G|_{\mathcal{C}^{\dagger}}$ (as in Proposition~\ref{prop:certificate}) makes $\pi_r^* = \pi_{\mathrm{ILS}}$ the minimum-cost in-corridor path; it uses at most $\ell_{\max}(\mathcal{C}^{\dagger})$ edges, each of weight at most $w_{\max}(G)$, and $C(\pi^*) \geq 1 > 0$ since every edge weight is at least $1$ (so the division in Eq.~\eqref{eq:additive_bound} is well defined). $\square$
+
+\paragraph{Theorem~\ref{thm:no_bound}.}
+\noindent\textit{Proof (explicit witness family, respecting $w = d + \lambda\rho \geq 1$).}
+Fix $\epsilon > 0$, choose risk weight $\lambda > \epsilon$, and set $K := r_0 + 2$. Build a $(K{+}2)\times N$ grid (rows $0,\dots,K{+}1$; columns $0,\dots,N{-}1$) in the paper's $8$-connected model, with $w(u,v) = d(u,v) + \lambda\rho(v)$, $\rho \in [0,1]$: row~$1$ is free with \emph{maximal risk} $\rho \equiv 1$; row~$0$ is blocked; rows $2,\dots,K{-}1$ are blocked except at the two end columns $0$ and $N{-}1$, whose cells are free with risk~$0$ (the only vertical connectors); row~$K$ is the free \emph{safe lane} with risk~$0$; $s = (1,0)$, $g = (1,N{-}1)$. With row~$0$ blocked and rows $2,\dots,K{-}1$ blocked except at the ends, the diagonal moves available in the $8$-connected model create no in-corridor shortcut: from a row-$1$ cell every diagonal lands either in blocked row~$0$ or in a blocked interior cell of row~$2$, so in-corridor travel is confined to horizontal steps along row~$1$ (each costing $1+\lambda$). All edge costs lie in $[1, \sqrt2 + \lambda]$, a legal instance. With $r_0 = K{-}2$ the corridor $\mathcal{C}(r_0)$ covers rows $1,\dots,K{-}1$ but not row~$K$ (Chebyshev distance $K{-}1 = r_0{+}1$ from row~$1$); the in-corridor end-column connectors are dead-ends (they reach only the excluded row~$K$), so the only in-corridor $s$-to-$g$ path runs along row~$1$, of cost $(1+\lambda)(N{-}1) = \Theta(N)$. A path exists at $r_0$, so ILS returns it without widening: $C(\pi_{\mathrm{ILS}}) = (1+\lambda)(N{-}1)$. The global optimum climbs the column-$0$ connector to the safe lane (cost $K{-}1$), traverses row~$K$ (cost $N{-}1$), and descends the column-$(N{-}1)$ connector to $g$ (cost $K{-}1$, the final step into the risk-$1$ cell $g$ costing $1+\lambda$): $C(\pi^*) \leq (N{-}1) + 2(K{-}1) + \lambda$. Hence
+\[
+\frac{C(\pi_{\mathrm{ILS}})}{C(\pi^*)} \;\geq\; \frac{(1+\lambda)(N{-}1)}{(N{-}1) + 2(K{-}1) + \lambda} \;\longrightarrow\; 1 + \lambda \quad (N \to \infty),
+\]
+which exceeds $1+\epsilon$ for $N$ large (the safe-lane detour is the global optimum once $\lambda(N{-}1) > 2(K{-}1) + \lambda$, i.e.\ for $N$ large). The construction is in the spirit of the no-uniform-suboptimality argument of \citet{Pohl1970}, transplanted to the geometric corridor-restriction setting. The two paths compared here use only cardinal moves with per-step cost in $[1, 1+\lambda]$, so for \emph{fixed} $\lambda$ the cost ratio is bounded by $1+\lambda$; unboundedness over the family therefore comes from $\lambda \to \infty$, not from $N$, which is the precise sense in which no risk-weight-independent $(1+\epsilon)$ bound holds. A direct cell-count check ($K=3$, $\lambda=9$, $N=1000$) gives $\frac{10 \cdot 999}{999 + 4 + 9} = \frac{9990}{1012} = 9.87$, consistent with the asymptotic $1+\lambda = 10$. $\square$
+
+\paragraph{Theorem~\ref{thm:size}.}
+\noindent\textit{Proof.}
+Assume w.l.o.g.\ the dominant axis is the column axis, so the Bresenham line has one cell per column $c \in \{c_{\min},\dots,c_{\max}\}$ with $c_{\max} - c_{\min} = D_\infty$ and row value $y(c)$ monotone and $1$-Lipschitz. Every corridor cell lies in one of at most $D_\infty + 2r + 1$ columns. Fix a column $j$: a cell $(j,y) \in \mathcal{C}(r)$ requires a line cell $(c,y(c))$ with $c \in [j-r,j+r] \cap [c_{\min},c_{\max}] =: [a,b]$ and $y \in [y(c)-r, y(c)+r]$. By monotonicity and $1$-Lipschitzness, $\{y(c): c \in [a,b]\} \subseteq [y(a), y(b)]$ with $y(b) - y(a) \leq b - a \leq 2r$, so the covered rows lie in $[y(a)-r, y(b)+r]$, at most $4r+1$ integers. Multiplying by the column count gives the bound; for an axis-aligned line $y(c)$ is constant and the per-column count is $2r+1$. $\square$
+
+\paragraph{Corollary~\ref{cor:reduction}.}
+\noindent\textit{Proof.}
+A consistent-heuristic A* (or Dijkstra) settles each vertex once, so expansions $\leq |\mathcal{C}(r)|$; the heap performs $O(|\mathcal{C}(r)|)$ operations each $O(\log|\mathcal{C}(r)|)$. Theorem~\ref{thm:size} gives $|\mathcal{C}(r)| = O(\alpha N^2)$, and the matching lower bound $|\mathcal{C}(r)| \geq (2r+1)\,D_\infty = \Omega(\alpha N^2)$ holds because the $\geq 2r+1$ cells stacked on each of the $D_\infty+1$ reference-line columns are distinct. Hence $|\mathcal{C}(r)| = \Theta(\alpha N^2)$, and the reduction relative to the $\Theta(N^2)$ worst case is $\Theta(1/\alpha)$; with $h_\lambda$, which is not consistent, the per-vertex single-expansion bound requires $h_0$ or Dijkstra. $\square$
+
+\paragraph{Theorem~\ref{thm:complexity}.}
+\noindent\textit{Proof.}
+(i) Bresenham emits one cell per dominant-axis step; the summed-area table is a two-pass prefix sum over $HW$ entries, each rectangular query four look-ups. (ii) A dense mask initialises $HW$ entries; the base search runs on $|\mathcal{C}(r_k)| \leq HW$ vertices. (iii) The half-width increases by $\Delta r \geq 1$ per failed attempt and caps at $K_{\max}$; every cell is within Chebyshev distance $N_{\!*}-1$ of an endpoint of $\ell(s,g)$, hence of $\ell(s,g)$, so $\mathcal{C}(N_{\!*}-1) \supseteq V$. (iv) Sum (ii) over $O(N_{\!*})$ iterations with $|\mathcal{C}(r_k)| \leq HW$; one mask and one table are reused, giving $O(HW)$ space. $\square$
+
+\paragraph{Lemma~\ref{lem:containment}.}
+\noindent\textit{Proof.}
+Let $\pi^*$ attain $\zeta(\pi^*) = \zeta^\star \leq r$; then $\pi^* \subseteq \mathcal{C}(r)$ and its edges lie in $G|_{\mathcal{C}(r)}$. The base search is optimal on the finite graph $G|_{\mathcal{C}(r)}$, so it returns a path of cost $\leq C(\pi^*)$, hence equal to the global minimum. $\square$
+
+\paragraph{Corollary~\ref{cor:freeline}.}
+\noindent\textit{Proof.}
+For $\lambda = 0$, $C(\pi) \geq h(s,g)$ for every path. The Bresenham line uses $\min(|\Delta x|,|\Delta y|)$ diagonal and $\bigl||\Delta x|-|\Delta y|\bigr|$ cardinal steps, of total cost $\sqrt2 \min(|\Delta x|,|\Delta y|) + \bigl||\Delta x|-|\Delta y|\bigr| = h(s,g)$; being obstacle-free it is a geodesic in $V$, so $\zeta^\star = 0$. $\square$
+
+\paragraph{Proposition~\ref{prop:isolated_feas}.}
+\noindent\textit{Proof.}
+The path that follows $\ell$ until meeting $B$, routes along the outer ring $\{v: d_\infty(v,p_0) = b+1\}$, then rejoins $\ell$, has deviation $\leq b+1$ (ring cells satisfy $d_\infty(v,\ell) \leq d_\infty(v,p_0) = b+1$) and is feasible, so $G|_{\mathcal{C}(b+1)}$ admits an $s$-to-$g$ path and the base search returns the in-corridor optimum. $\square$
+
+\paragraph{Lemma~\ref{lem:jps_unsound}.}
+\noindent\textit{Proof.}
+Take the obstacle-free $3\times4$ grid, $s = (2,0)$, $g = (0,3)$, $\lambda = 1$, $\rho(0,2) = 1$ and $\rho \equiv 0$ elsewhere. The octile distance $h(s,g) = 2\sqrt2 + 1$ is realised by exactly three monotone geodesics; two of them, $P_2 = (2,0)(1,1)(1,2)(0,3)$ and $P_3 = (2,0)(2,1)(1,2)(0,3)$, avoid $(0,2)$ and cost $2\sqrt2+1$, while $P_1 = (2,0)(1,1)(0,2)(0,3)$ costs $2\sqrt2 + 2$. Since the grid is obstacle-free, no cell has a forced neighbour, so a straight scan halts only at the goal or a boundary and a diagonal scan generates a successor only where a straight sub-scan finds a jump point or the goal is intercepted. We trace every jump-point successor reachable from $s=(2,0)$ toward $g$. The cardinal scans from $s$ dead-end: rightward along row~$2$ reaches the boundary with no forced neighbour (so $(2,1)$ is scanned but \emph{not} generated as a successor and is never itself expanded), and upward along column~$0$ likewise. The diagonal (up-right) scan from $s$ steps to $(1,1)$, where its straight sub-scans (rightward through $(1,2),(1,3)$; upward through $(0,1)$) find no forced neighbour and no goal interception, so it continues to $(0,2)$ on the top boundary; from $(0,2)$ the rightward scan intercepts the goal column and yields $g=(0,3)$. Thus the only successors ever inserted are $(1,1)$, $(0,2)$, and $g$, none of which is $(1,2)$; and because $(2,1)$ is never expanded, no diagonal from $(2,1)$ to $(1,2)$ is ever launched. Hence $(1,2)$ is never generated as a jump-point successor. Both optimal paths $P_2,P_3$ pass through $(1,2)$, so neither lies in the jump-point graph, and every $s$-to-$g$ route in that graph passes through $(0,2)$ at cost $\geq 2\sqrt2 + 2 > 2\sqrt2 + 1$. JPS therefore returns a strictly suboptimal path. $\square$
+
+\begin{thebibliography}{9}
+\bibitem[Pohl(1970)]{Pohl1970}
+Pohl, I., 1970.
+Heuristic search viewed as path finding in a graph.
+Artificial Intelligence 1(3--4), 193--204.
+
+\bibitem[Sturtevant(2012)]{Sturtevant2012}
+Sturtevant, N.R., 2012.
+Benchmarks for grid-based pathfinding.
+IEEE Transactions on Computational Intelligence and AI in Games 4(2), 144--148.
+\end{thebibliography}
+\end{document}

@@ -35,7 +35,7 @@ from run_supplementary_experiments import (
 from run_all_experiments import jps_astar
 
 
-NPZ_PATH = os.path.join(os.path.dirname(HERE), "data", "penang_port.npz")
+NPZ_PATH = os.path.join(HERE, "data", "penang_port.npz")
 OUT_CSV  = os.path.join(os.path.dirname(HERE), "results", "exp12_penang_port.csv")
 
 LAMBDAS = [0.0, 0.5, 1.0]

@@ -42,7 +42,7 @@ WEST  = 100.3500
 
 GRID_SIZE = 500  # 500x500 grid
 
-OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+OUT_DIR = os.path.join(os.path.dirname(__file__), "data")
 NPZ_PATH = os.path.join(OUT_DIR, "penang_port.npz")
 PNG_PATH = os.path.join(OUT_DIR, "penang_port.png")
 
