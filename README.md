@@ -146,17 +146,7 @@ Three risk distributions are tested:
 - **Hotspot**: Gaussian-centred high-risk zones
 - **Uniform**: constant risk across all cells
 
-## Citation
 
-```bibtex
-@article{elshahed2026risk,
-  title={Risk-Aware Corridor-Constrained Pathfinding for {UAV} Navigation in Biosecurity-Sensitive Environments},
-  author={Elshahed, Amr and Ali, Majid Khan Bin Majahar and Mohamed, Ahmad Sufril Azlan and Abdullah, Farah Aini Binti},
-  journal={Expert Systems with Applications},
-  year={2026},
-  note={Under Review}
-}
-```
 
 ## License
 
