@@ -1,0 +1,5 @@
+risk,lam,planner,node_red_pct,cost_ratio,exact_match_pct,speedup,n
+gradient,1.0,riskA*(p=2),81.18,1.0,100.0,5.635,12
+gradient,2.0,riskA*(p=2),85.93,1.0,100.0,7.759,12
+hotspot,1.0,riskA*(p=2),10.26,1.000239,83.3,1.115,12
+hotspot,2.0,riskA*(p=2),8.72,1.003119,83.3,1.082,12

@@ -1,0 +1,4 @@
+size,density,prep_ms,astar_nodes,bbox_nodes,ils_nodes,bbox_node_red_pct,ils_node_red_pct,bbox_optimal_match_pct,n
+150,0.1,2034544.2,971.4,955.7,677.2,0.88,17.68,100.0,20
+150,0.2,1400212.0,595.6,540.5,448.8,9.93,13.54,100.0,20
+150,0.3,1003456.4,465.3,361.9,366.0,18.74,11.52,100.0,20
