@@ -154,5 +154,5 @@ This project is released for academic and research purposes. Please cite the pap
 
 ## Contact
 
-Amr Elshahed - amr.elshahed@student.usm.my
+Amr Elshahed - amr@student.usm.my
 School of Computer Sciences, Universiti Sains Malaysia
